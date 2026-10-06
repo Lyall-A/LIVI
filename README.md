@@ -8,6 +8,12 @@ LIVI is an open-source **Apple CarPlay and Android Auto head unit**.
 
 It is a standalone cross-platform head unit with a native, zero-copy GStreamer video pipeline and hardware-accelerated decoding on Linux (including the Raspberry Pi 4 and 5) and macOS, low-latency audio, multitouch + D-Pad navigation, and support for very small embedded/OEM displays.
 
+## Note
+
+This repository is a fork of [LIVI](https://github.com/f-io/LIVI) that adds Wi-Fi P2P and the ability to use digital certificates for [MFi Authentication](#mfi-authentication). It is inspired by [xcertplay](https://github.com/shilapi/xcertplay)'s features and is heavily AI assisted.
+
+- **Wi-Fi P2P** — lets you use an existing Wi-Fi network instead of requiring a dedicated access point
+- **Digital MFi Authentication** — uses digital certificate files for cryptographic signing instead of the otherwise required hardware MFi coprocessor chip
 
 ## Project Status
 
