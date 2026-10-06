@@ -252,7 +252,7 @@ async fn run_auth<C: ControlChannel, A: AsyncAuth>(
 fn wifi_config(cp: &CpConfig) -> AccessoryWiFiConfigurationInformation {
     AccessoryWiFiConfigurationInformation {
         ssid: Some(cp.ssid.clone()),
-        passphrase: (!cp.existing_wifi).then(|| cp.passphrase.clone()),
+        passphrase: Some(cp.passphrase.clone()),
         security_type: cp.security_type,
         channel: cp.channel,
     }
@@ -283,7 +283,11 @@ fn carplay_start_session(cp: &CpConfig, live: OnAir) -> Option<CarPlayStartSessi
             source_version: Some(cp.source_version.clone()),
         });
     }
-    let fe80 = net::wlan_link_local(&cp.wifi_iface)?;
+    let ip = if cp.existing_wifi {
+        net::ipv4_of(&cp.wifi_iface).map(|address| address.to_string())?
+    } else {
+        net::wlan_link_local(&cp.wifi_iface)?
+    };
     let (live_ssid, live_channel) = live;
     let ssid = live_ssid.filter(|s| !s.is_empty()).unwrap_or_else(|| cp.ssid.clone());
     let channel = live_channel.filter(|c| *c != 0).unwrap_or(cp.channel);
@@ -291,9 +295,9 @@ fn carplay_start_session(cp: &CpConfig, live: OnAir) -> Option<CarPlayStartSessi
         wired_attributes: None,
         wireless_attributes: Some(CarPlayStartSessionWirelessAttributes {
             wifi_ssid: Some(ssid),
-            passphrase: (!cp.existing_wifi).then(|| cp.passphrase.clone()),
+            passphrase: Some(cp.passphrase.clone()),
             channel: Some(channel),
-            ip_address: vec![fe80],
+            ip_address: vec![ip],
             security_type: Some(cp.security_type as u8),
         }),
         port: Some(cp.airplay_port),
