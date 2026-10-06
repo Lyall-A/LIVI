@@ -75,6 +75,7 @@ fn cp_config() -> CpConfig {
         ap_mac: None,
         ap_on_air: None,
         wifi_iface: "nonexistent0".into(),
+        existing_wifi: false,
         ssid: "LIVI".into(),
         passphrase: "12345678".into(),
         channel: 36,

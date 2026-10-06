@@ -12,7 +12,7 @@ offline: boolean, };
 
 export enum CarType { "Unknown" = 0, "Gasoline" = 1, "DieselWinter" = 3, "Diesel" = 4, "Biodiesel" = 5, "E85" = 6, "LPG" = 7, "CNG" = 8, "LNG" = 9, "Electric" = 10, "Hydrogen" = 11, "Other" = 12, "HybridGasoline" = 101, "HybridDiesel" = 102 }
 
-export type Config = { debugLogging: boolean, wirelessAaEnabled: boolean, wirelessCpEnabled: boolean, wifiPassword: string, btAdapter: string, wifiInterface: string, wifiDedicatedInterface: boolean, wifiType: WifiBand, wifiChannel: number, wifiChannelWidth: number, country: string, carPlaySourceVersion: string, carPlayMfiI2cBus: number, 
+export type Config = { debugLogging: boolean, wirelessAaEnabled: boolean, wirelessCpEnabled: boolean, wifiPassword: string, btAdapter: string, wifiInterface: string, wifiDedicatedInterface: boolean, wifiExistingNetwork: boolean, wifiType: WifiBand, wifiChannel: number, wifiChannelWidth: number, country: string, carPlaySourceVersion: string, carPlayMfiI2cBus: number, 
 /**
  * -1 when the coprocessor has no power pin.
  */

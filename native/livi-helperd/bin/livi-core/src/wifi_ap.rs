@@ -24,7 +24,9 @@ const SETTLE_EVERY: Duration = Duration::from_secs(2);
 
 fn wanted(cfg: &Config) -> bool {
     cfg.wifi_interface != CHOICE
-        && (cfg.wifi_dedicated_interface || cfg.wireless_cp_enabled || cfg.wireless_aa_enabled)
+        && (cfg.wifi_dedicated_interface
+            || cfg.wireless_aa_enabled
+            || (cfg.wireless_cp_enabled && !cfg.wifi_existing_network))
 }
 
 /// What the unit reads at its start, a change needs a restart.

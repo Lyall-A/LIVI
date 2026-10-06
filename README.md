@@ -66,6 +66,8 @@ When both file paths are set, challenges are signed with the file-backed credent
 
 Wireless sessions do not need a router. LIVI brings up its own Wi-Fi access point and the phone joins that. Bluetooth carries the pairing and the handover, the session itself then runs over Wi-Fi.
 
+On Linux, enable `wifiExistingNetwork` to use the selected Wi-Fi interface as a client on an existing network instead. The head unit and iPhone must already be connected to the same network, and the network must allow peer-to-peer traffic. LIVI will not start its own access point in this mode. Android Auto and the dedicated-interface mode still require LIVI's access point.
+
 Wireless CarPlay and wireless Android Auto are enabled separately, so a head unit can offer one, both, or neither. With Auto Connect on, a phone that has been paired before is picked up again on its own. The car name is what the phone shows when it lists nearby vehicles.
 
 The Wi-Fi page sets the band, password, channel and country for the access point and picks the Wi-Fi interface. The Bluetooth adapter is picked next to it, under Connections.

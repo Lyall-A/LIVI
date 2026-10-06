@@ -25,6 +25,7 @@
     "btAdapter": "Bluetooth Interface",
     "dongleSwitchedOff": "LIVI Link (off)",
     "wifiDedicatedInterface": "Dedicated Interface",
+    "wifiExistingNetwork": "Use Existing Network",
     "wifiLinkSpeed": "Link Speed",
     "wifiLinkDown": "Link ↓",
     "wifiLinkUp": "Link ↑",

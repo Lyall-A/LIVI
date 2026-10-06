@@ -140,7 +140,7 @@ function StringField({
       onPaste={(e) => {
         e.preventDefault()
         const pasted = e.clipboardData.getData('text')
-        const input = e.currentTarget
+        const input = e.currentTarget as HTMLInputElement
         const start = input.selectionStart ?? draft.length
         const end = input.selectionEnd ?? draft.length
         setDraft(`${draft.slice(0, start)}${pasted}${draft.slice(end)}`)

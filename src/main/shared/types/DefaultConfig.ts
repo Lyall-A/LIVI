@@ -53,6 +53,7 @@ export const DEFAULT_CONFIG: Config = {
   btAdapter: 'hci0',
   wifiInterface: 'wlan0',
   wifiDedicatedInterface: false,
+  wifiExistingNetwork: false,
   carPlaySourceVersion: '950.7.1',
   carPlayMfiI2cBus: 2,
   carPlayMfiPowerGpio: -1,

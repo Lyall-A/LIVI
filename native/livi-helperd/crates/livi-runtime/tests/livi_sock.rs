@@ -32,6 +32,7 @@ fn config(path: &str) -> LiviSockConfig {
         path: path.into(),
         identity: Identity { name: "LIVI".into(), ssid: "LIVI".into(), bt_mac: [0; 6] },
         cp: CpConfig {
+            existing_wifi: false,
             ap_mac: None,
             ap_on_air: None,
             wifi_iface: "none0".into(),

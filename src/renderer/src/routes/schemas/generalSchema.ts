@@ -224,6 +224,18 @@ export const generalSchema: SettingsNode<Config> = {
               disabled: window.app?.platform !== 'linux'
             },
             {
+              type: 'checkbox',
+              label: 'Use Existing Network',
+              labelKey: 'settings.wifiExistingNetwork',
+              icon: 'wifiInterface',
+              path: 'wifiExistingNetwork',
+              disabled: window.app?.platform !== 'linux',
+              page: {
+                title: 'Use Existing Network',
+                labelTitle: 'settings.wifiExistingNetwork'
+              }
+            },
+            {
               type: 'custom',
               label: 'Link Speed',
               labelKey: 'settings.wifiLinkSpeed',

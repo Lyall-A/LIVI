@@ -51,6 +51,7 @@ fn cp_config() -> (CpConfig, Identity) {
         ap_mac: None,
         ap_on_air: None,
         wifi_iface: String::new(),
+        existing_wifi: false,
         ssid: name.clone(),
         passphrase: env_s("LIVI_PASSPHRASE", "12345678"),
         channel: env_s("LIVI_CHANNEL", "36").parse().unwrap_or(36),

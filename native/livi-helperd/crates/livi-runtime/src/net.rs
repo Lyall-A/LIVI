@@ -160,6 +160,28 @@ pub fn ap_ssid_channel(iface: &str) -> (Option<String>, Option<u8>) {
     }
 }
 
+/// The SSID and channel of an existing client connection.
+#[cfg(target_os = "linux")]
+pub fn wifi_ssid_channel(iface: &str) -> (Option<String>, Option<u8>) {
+    let out = Command::new(crate::sys::tool("iw"))
+        .args(["dev", iface, "link"])
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+        .unwrap_or_default();
+    let ssid = out.lines().find_map(|line| line.trim().strip_prefix("SSID: ")).map(str::to_string);
+    let channel = out.lines().find_map(|line| {
+        let channel = line.trim().strip_prefix("channel ")?.split_whitespace().next()?;
+        channel.parse().ok()
+    });
+    (ssid, channel)
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn wifi_ssid_channel(_iface: &str) -> (Option<String>, Option<u8>) {
+    (None, None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

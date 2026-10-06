@@ -68,6 +68,14 @@ impl DeviceConfig {
         }
         env_or(env_key, default)
     }
+
+    pub fn bool(&self, json_key: &str, env_key: &str, default: bool) -> bool {
+        self.json
+            .get(json_key)
+            .and_then(|v| v.as_bool())
+            .or_else(|| std::env::var(env_key).ok().and_then(|v| v.parse().ok()))
+            .unwrap_or(default)
+    }
 }
 
 fn ap_iface(dc: &DeviceConfig) -> String {
@@ -213,19 +221,25 @@ async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     let dc = DeviceConfig::load();
     let bus_num: u32 = dc.int("carPlayMfiI2cBus", "LIVI_CP_MFI_I2C_BUS", 2);
     let gpio: i32 = dc.int("carPlayMfiPowerGpio", "LIVI_CP_MFI_POWER_GPIO", 21);
+    let existing_wifi = dc.bool("wifiExistingNetwork", "LIVI_WIFI_EXISTING_NETWORK", false);
     let certificate_path = dc.string("carPlayMfiCertificatePath", "LIVI_CP_MFI_CERTIFICATE", "");
     let key_path = dc.string("carPlayMfiPrivateKeyPath", "LIVI_CP_MFI_PRIVATE_KEY", "");
     let name = dc.string("carName", "LIVI_CP_NAME", "LIVI");
-    let ssid = name.clone();
     let wifi_iface = ap_iface(&dc);
+    let (connected_ssid, connected_channel) = existing_wifi
+        .then(|| livi_runtime::net::wifi_ssid_channel(&wifi_iface))
+        .unwrap_or_default();
+    let ssid = connected_ssid.unwrap_or_else(|| name.clone());
     let dongle_ap =
         dc.string("wifiInterface", "LIVI_WIFI_IFACE", "wlan0") == livi_link_host::link::CHOICE;
     let ap_mac = dongle_ap.then(livi_link_host::ap::mac).flatten();
     let cp = CpConfig {
         wifi_iface: wifi_iface.clone(),
+        existing_wifi,
         ssid: ssid.clone(),
         passphrase: dc.string("wifiPassword", "LIVI_PASSPHRASE", "12345678"),
-        channel: dc.int("wifiChannel", "LIVI_CHANNEL", 36u16) as u8,
+        channel: connected_channel
+            .unwrap_or_else(|| dc.int("wifiChannel", "LIVI_CHANNEL", 36u16) as u8),
         security_type: SecurityType::WpaWpa2,
         airplay_port: env_or("LIVI_CP_AIRPLAY_PORT", 0),
         source_version: dc.string("carPlaySourceVersion", "LIVI_CP_SOURCE_VERSION", "950.7.1"),

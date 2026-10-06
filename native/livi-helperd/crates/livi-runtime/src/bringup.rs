@@ -26,6 +26,7 @@ use crate::{AsyncAuth, ControlChannel, net};
 #[derive(Debug, Clone)]
 pub struct CpConfig {
     pub wifi_iface: String,
+    pub existing_wifi: bool,
     pub ssid: String,
     pub passphrase: String,
     pub channel: u8,
@@ -251,7 +252,7 @@ async fn run_auth<C: ControlChannel, A: AsyncAuth>(
 fn wifi_config(cp: &CpConfig) -> AccessoryWiFiConfigurationInformation {
     AccessoryWiFiConfigurationInformation {
         ssid: Some(cp.ssid.clone()),
-        passphrase: Some(cp.passphrase.clone()),
+        passphrase: (!cp.existing_wifi).then(|| cp.passphrase.clone()),
         security_type: cp.security_type,
         channel: cp.channel,
     }
@@ -290,7 +291,7 @@ fn carplay_start_session(cp: &CpConfig, live: OnAir) -> Option<CarPlayStartSessi
         wired_attributes: None,
         wireless_attributes: Some(CarPlayStartSessionWirelessAttributes {
             wifi_ssid: Some(ssid),
-            passphrase: Some(cp.passphrase.clone()),
+            passphrase: (!cp.existing_wifi).then(|| cp.passphrase.clone()),
             channel: Some(channel),
             ip_address: vec![fe80],
             security_type: Some(cp.security_type as u8),
@@ -316,12 +317,16 @@ async fn on_air(cp: &CpConfig) -> OnAir {
             Ok(Some((ssid, channel))) => (Some(ssid), Some(channel)),
             _ => (None, None),
         },
+        None if cp.existing_wifi => net::wifi_ssid_channel(&cp.wifi_iface),
         None => net::ap_ssid_channel(&cp.wifi_iface),
     }
 }
 
 /// The answer names an SSID and a channel, so it waits until they are on air and returns them.
 async fn wait_for_ap(cp: &CpConfig) -> OnAir {
+    if cp.existing_wifi {
+        return on_air(cp).await;
+    }
     let iface = &cp.wifi_iface;
     let remote = cp.ap_on_air.is_some();
     if !remote && (iface.is_empty() || !Path::new(&format!("/sys/class/net/{iface}")).exists()) {
@@ -632,6 +637,7 @@ mod tests {
     fn dongle_ap(ask: AskOnAir) -> CpConfig {
         CpConfig {
             wifi_iface: "usb0".into(),
+            existing_wifi: false,
             ssid: "LIVI".into(),
             passphrase: "12345678".into(),
             channel: 36,
