@@ -36,7 +36,7 @@ pub enum MfiError {
     AuthFailed { error_code: Option<u8> },
     NoChip { probed: Vec<u16> },
     Io(String),
-    KeyMaterial(String),
+    Local(String),
 }
 
 impl core::fmt::Display for MfiError {
@@ -55,7 +55,7 @@ impl core::fmt::Display for MfiError {
                 write!(f, "no coprocessor answered at {}", addrs.join("/"))
             }
             MfiError::Io(e) => write!(f, "i2c io: {e}"),
-            MfiError::KeyMaterial(e) => write!(f, "file MFi credentials: {e}"),
+            MfiError::Local(e) => write!(f, "local: {e}"),
         }
     }
 }
@@ -84,23 +84,21 @@ impl FileCoprocessor {
     ) -> Result<Self, MfiError> {
         let certificate_path = certificate_path.as_ref();
         let key_path = key_path.as_ref();
-        let bundle = std::fs::read(certificate_path).map_err(|e| {
-            MfiError::KeyMaterial(format!("read {}: {e}", certificate_path.display()))
-        })?;
-        let pkcs7 =
-            Pkcs7::from_der(&bundle).or_else(|_| Pkcs7::from_pem(&bundle)).map_err(|e| {
-                MfiError::KeyMaterial(format!("parse {}: {e}", certificate_path.display()))
-            })?;
+        let bundle = std::fs::read(certificate_path)
+            .map_err(|e| MfiError::Local(format!("read {}: {e}", certificate_path.display())))?;
+        let pkcs7 = Pkcs7::from_der(&bundle)
+            .or_else(|_| Pkcs7::from_pem(&bundle))
+            .map_err(|e| MfiError::Local(format!("parse {}: {e}", certificate_path.display())))?;
         let key_data = std::fs::read(key_path)
-            .map_err(|e| MfiError::KeyMaterial(format!("read {}: {e}", key_path.display())))?;
+            .map_err(|e| MfiError::Local(format!("read {}: {e}", key_path.display())))?;
         let key = PKey::private_key_from_der(&key_data)
             .or_else(|_| PKey::private_key_from_pem(&key_data))
-            .map_err(|e| MfiError::KeyMaterial(format!("parse {}: {e}", key_path.display())))?;
+            .map_err(|e| MfiError::Local(format!("parse {}: {e}", key_path.display())))?;
         let key_kind = match key.id() {
             Id::RSA => FileKeyKind::Rsa,
             Id::EC => FileKeyKind::Ec,
             id => {
-                return Err(MfiError::KeyMaterial(format!("unsupported private key type {id:?}")));
+                return Err(MfiError::Local(format!("unsupported private key type {id:?}")));
             }
         };
         let _matching_certificate = pkcs7
@@ -112,7 +110,7 @@ impl FileCoprocessor {
                 })
             })
             .ok_or_else(|| {
-                MfiError::KeyMaterial(
+                MfiError::Local(
                     "certificate bundle has no certificate matching the private key".into(),
                 )
             })?;
@@ -139,11 +137,11 @@ impl AuthCoprocessor for FileCoprocessor {
                 if !(CHALLENGE_MIN..=CHALLENGE_MAX).contains(&challenge.len()) {
                     return Err(MfiError::ChallengeSize(challenge.len()));
                 }
-                let rsa = self.key.rsa().map_err(|e| MfiError::KeyMaterial(e.to_string()))?;
+                let rsa = self.key.rsa().map_err(|e| MfiError::Local(e.to_string()))?;
                 let mut signature = vec![0; rsa.size() as usize];
                 let size = rsa
                     .private_encrypt(challenge, &mut signature, Padding::NONE)
-                    .map_err(|e| MfiError::KeyMaterial(format!("sign challenge: {e}")))?;
+                    .map_err(|e| MfiError::Local(format!("sign challenge: {e}")))?;
                 signature.truncate(size);
                 Ok(signature)
             }
@@ -151,9 +149,9 @@ impl AuthCoprocessor for FileCoprocessor {
                 if challenge.len() != AUTH_V3_CHALLENGE_SIZE {
                     return Err(MfiError::ChallengeSize(challenge.len()));
                 }
-                let ec = self.key.ec_key().map_err(|e| MfiError::KeyMaterial(e.to_string()))?;
+                let ec = self.key.ec_key().map_err(|e| MfiError::Local(e.to_string()))?;
                 let signature = EcdsaSig::sign(challenge, &ec)
-                    .map_err(|e| MfiError::KeyMaterial(format!("sign challenge: {e}")))?;
+                    .map_err(|e| MfiError::Local(format!("sign challenge: {e}")))?;
                 let mut raw = vec![0; AUTH_V3_SIGNATURE_SIZE];
                 write_fixed_integer(signature.r(), &mut raw[..32])?;
                 write_fixed_integer(signature.s(), &mut raw[32..])?;
@@ -166,9 +164,9 @@ impl AuthCoprocessor for FileCoprocessor {
 fn write_fixed_integer(value: &BigNumRef, output: &mut [u8]) -> Result<(), MfiError> {
     let encoded = value
         .to_vec_padded(output.len() as i32)
-        .map_err(|e| MfiError::KeyMaterial(format!("encode ECDSA signature: {e}")))?;
+        .map_err(|e| MfiError::Local(format!("encode ECDSA signature: {e}")))?;
     if encoded.len() != output.len() {
-        return Err(MfiError::KeyMaterial("ECDSA signature integer is out of range".into()));
+        return Err(MfiError::Local("ECDSA signature integer is out of range".into()));
     }
     output.copy_from_slice(&encoded);
     Ok(())

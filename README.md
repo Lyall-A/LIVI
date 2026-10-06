@@ -41,32 +41,31 @@ Wireless CarPlay requires a Bluetooth adapter and a Wi-Fi interface dedicated to
 
 ## MFi Authentication
 
-CarPlay requires the accessory to authenticate against the phone. The usual way is an Apple **MFi authentication coprocessor**, a hardware chip that cannot be emulated and that LIVI neither ships nor bypasses. Two routes:
+CarPlay requires the accessory to authenticate against the phone. The usual way is an Apple **MFi authentication coprocessor**. Three routes:
 
 - **On the board** — a coprocessor wired to the I²C bus
+- **Locally** — a digital certificate
 - **Over the network** — a [LIVI Link](LIVI-LINK.md)
 
-Both routes work on Linux. A Mac has no I²C bus to put a coprocessor on, so there the LIVI Link is the only one.
+All routes work on Linux. A Mac has no I²C bus to put a coprocessor on, so there the only options are local and LIVI Link.
 
 LIVI does not support Apple's Basic Accessory Authentication on MacOS, but may in the future.
 
-For a chip on the board, configuration (`config.json`):
+Configuration (`config.json`):
 
-| Key                   | Default | Description                          |
-| --------------------- | ------- | ------------------------------------ |
-| `carPlayMfiI2cBus`    | `2`     | I²C bus number the coprocessor is on |
-| `carPlayMfiPowerGpio` | `21`    | GPIO that powers the coprocessor     |
-| `carPlayMfiCertificatePath` | empty | Path to the `.p7b` PKCS#7 certificate bundle |
-| `carPlayMfiPrivateKeyPath` | empty | Path to the `.pk8` PKCS#8 private key |
+| Key                         | Default | Description                          |
+| --------------------------- | ------- | ------------------------------------ |
+| `carPlayMfiI2cBus`          | `2`     | I²C bus number the coprocessor is on |
+| `carPlayMfiPowerGpio`       | `21`    | GPIO that powers the coprocessor     |
+| `carPlayMfiCertificatePath` | empty   | Path to `.p7b` PKCS#7 certificate    |
+| `carPlayMfiPrivateKeyPath`  | empty   | Path to `.pk8` PKCS#8 private key    |
 
-When both file paths are set, challenges are signed with the file-backed credentials instead of the GPIO/I²C coprocessor. Without either backend, native CarPlay is unavailable. All Android Auto paths work regardless.
+When both file paths are set, challenges are signed with a digital signature instead of a real coprocessor. Without either backend, native CarPlay is unavailable. All Android Auto paths work regardless.
 
 
 ## Wireless
 
-Wireless sessions do not need a router. LIVI brings up its own Wi-Fi access point and the phone joins that. Bluetooth carries the pairing and the handover, the session itself then runs over Wi-Fi.
-
-On Linux, enable `wifiExistingNetwork` to use the selected Wi-Fi interface as a client on an existing network instead. The head unit and iPhone must already be connected to the same network, and the network must allow peer-to-peer traffic. LIVI will not start its own access point in this mode. Android Auto and the dedicated-interface mode still require LIVI's access point.
+Wireless sessions do not need a router. LIVI brings up its own Wi-Fi access point and the phone joins that. An existing connection can be used instead if preferred, eliminating the need for running a dedicated access point. Bluetooth carries the pairing and the handover, the session itself then runs over Wi-Fi.
 
 Wireless CarPlay and wireless Android Auto are enabled separately, so a head unit can offer one, both, or neither. With Auto Connect on, a phone that has been paired before is picked up again on its own. The car name is what the phone shows when it lists nearby vehicles.
 

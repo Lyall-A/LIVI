@@ -105,14 +105,12 @@ function StringField({
   minLength,
   maxLength,
   isUrl,
-  pathHint,
   onCommit
 }: {
   value: string
   minLength?: number
   maxLength?: number
   isUrl: boolean
-  pathHint?: string
   onCommit: (v: string) => void
 }) {
   const [draft, setDraft] = useState(value)
@@ -137,14 +135,6 @@ function StringField({
     <TextField
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
-      onPaste={(e) => {
-        e.preventDefault()
-        const pasted = e.clipboardData.getData('text')
-        const input = e.currentTarget as HTMLInputElement
-        const start = input.selectionStart ?? draft.length
-        const end = input.selectionEnd ?? draft.length
-        setDraft(`${draft.slice(0, start)}${pasted}${draft.slice(end)}`)
-      }}
       onFocus={() => {
         focused.current = true
       }}
@@ -155,8 +145,8 @@ function StringField({
       fullWidth
       variant="outlined"
       error={invalid}
-      helperText={badUrl ? 'invalid URL' : tooShort ? `min. ${minLength}` : pathHint}
-      slotProps={{ htmlInput: { maxLength, spellCheck: false, autoComplete: 'off' } }}
+      helperText={badUrl ? 'invalid URL' : tooShort ? `min. ${minLength}` : undefined}
+      slotProps={{ htmlInput: { maxLength } }}
       sx={{
         '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
           borderColor: 'primary.main',
@@ -187,13 +177,6 @@ export const SettingsFieldControl = <T,>({
           minLength={node.minLength}
           maxLength={node.maxLength}
           isUrl={node.format === 'url'}
-          pathHint={
-            node.path === 'carPlayMfiCertificatePath'
-              ? 'Path to the .p7b certificate file'
-              : node.path === 'carPlayMfiPrivateKeyPath'
-                ? 'Path to the .pk8 private key file'
-                : undefined
-          }
           onCommit={(v) => onChange(v as T)}
         />
       )

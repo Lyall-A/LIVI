@@ -461,47 +461,6 @@ describe('useKeyDown', () => {
     expect(event.preventDefault).not.toHaveBeenCalled()
   })
 
-  test('text editing keeps Backspace and clipboard shortcuts native', () => {
-    const { contentRoot } = setupRoots()
-    const input = document.createElement('input')
-    input.type = 'text'
-    contentRoot.appendChild(input)
-    input.focus()
-
-    const context: AppContextProps = {
-      isTouchDevice: false,
-      keyboardNavigation: { focusedElId: 'mfi-path' },
-      contentEl: { current: contentRoot },
-      onSetAppContext: vi.fn()
-    }
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <AppContext.Provider value={context}>{children}</AppContext.Provider>
-    )
-    const { result } = renderHook(
-      () =>
-        useKeyDown({
-          receivingVideo: false,
-          inContainer: (root, el) => !!root && !!el && root.contains(el),
-          focusSelectedNav: vi.fn(() => false),
-          focusFirstInMain: vi.fn(() => false),
-          moveFocusLinear: vi.fn(() => false),
-          isFormField: () => true,
-          activateControl: vi.fn(() => false)
-        }),
-      { wrapper }
-    )
-
-    const backspace = makeEvent('Backspace')
-    result.current(backspace)
-    expect(backspace.preventDefault).not.toHaveBeenCalled()
-
-    const paste = makeEvent('KeyV')
-    paste.key = 'v'
-    paste.ctrlKey = true
-    result.current(paste)
-    expect(paste.preventDefault).not.toHaveBeenCalled()
-  })
-
   test('dialog root counts as inMain for focus routing', () => {
     const { contentRoot } = setupRoots()
     mockPathname = ROUTES.SETTINGS

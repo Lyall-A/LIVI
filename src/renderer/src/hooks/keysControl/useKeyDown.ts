@@ -119,23 +119,6 @@ export const useKeyDown = ({
       }
 
       const formFocused = isFormField(active)
-      const textFieldFocused =
-        formFocused &&
-        active &&
-        (active.tagName === 'TEXTAREA' ||
-          (active.tagName === 'INPUT' &&
-            !['checkbox', 'color', 'range'].includes((active as HTMLInputElement).type)))
-
-      // Let native text editing handle deletion and clipboard shortcuts.
-      if (
-        textFieldFocused &&
-        (((event.ctrlKey || event.metaKey) &&
-          ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) ||
-          event.key === 'Backspace' ||
-          event.key === 'Delete')
-      ) {
-        return
-      }
 
       const pager = appContext?.telemetryPager
       const isTelemetryRoute = currentRoute.startsWith('/telemetry')

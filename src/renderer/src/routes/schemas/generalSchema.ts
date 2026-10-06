@@ -229,11 +229,7 @@ export const generalSchema: SettingsNode<Config> = {
               labelKey: 'settings.wifiExistingNetwork',
               icon: 'wifiInterface',
               path: 'wifiExistingNetwork',
-              disabled: window.app?.platform !== 'linux',
-              page: {
-                title: 'Use Existing Network',
-                labelTitle: 'settings.wifiExistingNetwork'
-              }
+              disabled: window.app?.platform !== 'linux'
             },
             {
               type: 'custom',
@@ -1078,23 +1074,23 @@ export const generalSchema: SettingsNode<Config> = {
         },
         {
           type: 'string',
-          label: 'Certificate File',
+          label: 'Certificate Path',
           labelKey: 'settings.mfiCertificatePath',
           icon: 'mfi',
           path: 'carPlayMfiCertificatePath',
           page: {
-            title: 'Certificate File',
+            title: 'Certificate Path',
             labelTitle: 'settings.mfiCertificatePath'
           }
         },
         {
           type: 'string',
-          label: 'Private Key File',
+          label: 'Private Key Path',
           labelKey: 'settings.mfiPrivateKeyPath',
           icon: 'mfi',
           path: 'carPlayMfiPrivateKeyPath',
           page: {
-            title: 'Private Key File',
+            title: 'Private Key Path',
             labelTitle: 'settings.mfiPrivateKeyPath'
           }
         }
