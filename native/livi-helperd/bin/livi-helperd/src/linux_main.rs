@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use iap2_csm::messages::wifi::SecurityType;
 use iap2_link::LinkConfig;
-use iap2_mfi::{I2cCoprocessor, NcmCoprocessor, NoCoprocessor};
+use iap2_mfi::{FileCoprocessor, I2cCoprocessor, NcmCoprocessor, NoCoprocessor};
 use std::sync::Arc;
 
 use livi_runtime::bonjour::Bonjour;
@@ -213,6 +213,8 @@ async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     let dc = DeviceConfig::load();
     let bus_num: u32 = dc.int("carPlayMfiI2cBus", "LIVI_CP_MFI_I2C_BUS", 2);
     let gpio: i32 = dc.int("carPlayMfiPowerGpio", "LIVI_CP_MFI_POWER_GPIO", 21);
+    let certificate_path = dc.string("carPlayMfiCertificatePath", "LIVI_CP_MFI_CERTIFICATE", "");
+    let key_path = dc.string("carPlayMfiPrivateKeyPath", "LIVI_CP_MFI_PRIVATE_KEY", "");
     let name = dc.string("carName", "LIVI_CP_NAME", "LIVI");
     let ssid = name.clone();
     let wifi_iface = ap_iface(&dc);
@@ -244,28 +246,37 @@ async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     let pk = std::env::var("LIVI_CP_PK").unwrap_or_default();
     let pi = std::env::var("LIVI_CP_PI").unwrap_or_default();
 
-    println!("[helperd] opening MFi bus={bus_num} gpio={gpio}");
-    let (auth, mfi_link) = match I2cCoprocessor::open(bus_num, gpio) {
-        Ok(chip) => {
-            println!("[helperd] MFi addr=0x{:02X}", chip.address());
-            (SharedCoprocessor::new(Box::new(chip)), crate::link::LinkPresence::always())
+    let (auth, mfi_link) = if !certificate_path.is_empty() || !key_path.is_empty() {
+        if certificate_path.is_empty() || key_path.is_empty() {
+            return Err("both MFi certificate and private key paths are required".into());
         }
-        Err(e) => {
-            println!(
-                "[helperd] no local MFi ({e}); a LIVI Link dongle's chip serves once on the bus"
-            );
-            let auth = SharedCoprocessor::new(Box::new(NoCoprocessor));
-            let link = crate::link::LinkPresence::new();
-            let (up_auth, down_auth) = (auth.clone(), auth.clone());
-            tokio::spawn(link.clone().resolve(
-                move || {
-                    up_auth.replace(Box::new(NcmCoprocessor::new(&livi_link_host::link::addr(
-                        livi_net::port::MFI,
-                    ))))
-                },
-                move || down_auth.replace(Box::new(NoCoprocessor)),
-            ));
-            (auth, link)
+        println!("[helperd] using file-backed MFi credentials");
+        let auth = FileCoprocessor::from_files(&certificate_path, &key_path)?;
+        (SharedCoprocessor::new(Box::new(auth)), crate::link::LinkPresence::always())
+    } else {
+        println!("[helperd] opening MFi bus={bus_num} gpio={gpio}");
+        match I2cCoprocessor::open(bus_num, gpio) {
+            Ok(chip) => {
+                println!("[helperd] MFi addr=0x{:02X}", chip.address());
+                (SharedCoprocessor::new(Box::new(chip)), crate::link::LinkPresence::always())
+            }
+            Err(e) => {
+                println!(
+                    "[helperd] no local MFi ({e}); a LIVI Link dongle's chip serves once on the bus"
+                );
+                let auth = SharedCoprocessor::new(Box::new(NoCoprocessor));
+                let link = crate::link::LinkPresence::new();
+                let (up_auth, down_auth) = (auth.clone(), auth.clone());
+                tokio::spawn(link.clone().resolve(
+                    move || {
+                        up_auth.replace(Box::new(NcmCoprocessor::new(&livi_link_host::link::addr(
+                            livi_net::port::MFI,
+                        ))))
+                    },
+                    move || down_auth.replace(Box::new(NoCoprocessor)),
+                ));
+                (auth, link)
+            }
         }
     };
 

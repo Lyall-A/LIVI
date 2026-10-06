@@ -56,8 +56,10 @@ For a chip on the board, configuration (`config.json`):
 | --------------------- | ------- | ------------------------------------ |
 | `carPlayMfiI2cBus`    | `2`     | I²C bus number the coprocessor is on |
 | `carPlayMfiPowerGpio` | `21`    | GPIO that powers the coprocessor     |
+| `carPlayMfiCertificatePath` | empty | Path to the `.p7b` PKCS#7 certificate bundle |
+| `carPlayMfiPrivateKeyPath` | empty | Path to the `.pk8` PKCS#8 private key |
 
-Without one of these, native CarPlay is unavailable. All Android Auto paths work regardless.
+When both file paths are set, challenges are signed with the file-backed credentials instead of the GPIO/I²C coprocessor. Without either backend, native CarPlay is unavailable. All Android Auto paths work regardless.
 
 
 ## Wireless

@@ -94,7 +94,12 @@ describe('generalSchema', () => {
         labelKey: 'settings.mfi'
       })
     )
-    expect(mfi.children.map((x) => x.path)).toEqual(['carPlayMfiI2cBus', 'carPlayMfiPowerGpio'])
+    expect(mfi.children.map((x) => x.path)).toEqual([
+      'carPlayMfiI2cBus',
+      'carPlayMfiPowerGpio',
+      'carPlayMfiCertificatePath',
+      'carPlayMfiPrivateKeyPath'
+    ])
 
     const powerPin = mfi.children[1]
     expect(powerPin.valueTransform?.format?.(-1)).toBe('-')

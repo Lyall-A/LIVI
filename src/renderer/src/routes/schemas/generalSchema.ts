@@ -1063,6 +1063,28 @@ export const generalSchema: SettingsNode<Config> = {
             title: 'Power Pin',
             labelTitle: 'settings.mfiPowerGpio'
           }
+        },
+        {
+          type: 'string',
+          label: 'Certificate File',
+          labelKey: 'settings.mfiCertificatePath',
+          icon: 'mfi',
+          path: 'carPlayMfiCertificatePath',
+          page: {
+            title: 'Certificate File',
+            labelTitle: 'settings.mfiCertificatePath'
+          }
+        },
+        {
+          type: 'string',
+          label: 'Private Key File',
+          labelKey: 'settings.mfiPrivateKeyPath',
+          icon: 'mfi',
+          path: 'carPlayMfiPrivateKeyPath',
+          page: {
+            title: 'Private Key File',
+            labelTitle: 'settings.mfiPrivateKeyPath'
+          }
         }
       ]
     },

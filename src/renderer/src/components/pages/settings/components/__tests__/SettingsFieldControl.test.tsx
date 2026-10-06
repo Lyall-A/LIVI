@@ -20,7 +20,7 @@ vi.mock('@mui/material', async () => {
   const actual = await vi.importActual('@mui/material')
   return {
     ...actual,
-    TextField: ({ value, onChange, onBlur, onFocus, onKeyDown, type = 'text' }: any) => (
+    TextField: ({ value, onChange, onBlur, onFocus, onKeyDown, onPaste, type = 'text' }: any) => (
       <input
         data-testid={`textfield-${type}`}
         type={type}
@@ -29,6 +29,7 @@ vi.mock('@mui/material', async () => {
         onBlur={onBlur}
         onFocus={onFocus}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
       />
     ),
     Switch: ({ checked, onChange }: any) => (
@@ -105,6 +106,24 @@ describe('SettingsFieldControl', () => {
     expect(onChange).not.toHaveBeenCalled()
     fireEvent.blur(input)
     expect(onChange).toHaveBeenCalledWith('new')
+  })
+
+  test('string node inserts pasted text at the cursor', () => {
+    const onChange = vi.fn()
+    render(
+      <SettingsFieldControl
+        node={{ type: 'string', label: 'Path', path: 'carPlayMfiCertificatePath' } as any}
+        value="/tmp/.p7b"
+        onChange={onChange}
+      />
+    )
+    const input = screen.getByTestId('textfield-text') as HTMLInputElement
+    input.setSelectionRange(5, 5)
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => '/certs/' }
+    })
+    fireEvent.blur(input)
+    expect(onChange).toHaveBeenCalledWith('/tmp//certs/.p7b')
   })
 
   test('string node keeps the draft when the stored value changes while editing', () => {

@@ -90,6 +90,9 @@ export type Config = {
   // CarPlay MFi coprocessor: i2c bus, power-enable GPIO (-1 = no power pin)
   carPlayMfiI2cBus: number
   carPlayMfiPowerGpio: number
+  // Optional file-backed MFi credentials; set both to bypass the hardware chip.
+  carPlayMfiCertificatePath: string
+  carPlayMfiPrivateKeyPath: string
 
   gpsEnabled: boolean
   gpsDevice: string

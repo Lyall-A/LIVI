@@ -56,6 +56,8 @@ export const DEFAULT_CONFIG: Config = {
   carPlaySourceVersion: '950.7.1',
   carPlayMfiI2cBus: 2,
   carPlayMfiPowerGpio: -1,
+  carPlayMfiCertificatePath: '',
+  carPlayMfiPrivateKeyPath: '',
   gpsEnabled: false,
   gpsDevice: '/dev/ttyAMA0',
   gpsBaudRate: 38400,

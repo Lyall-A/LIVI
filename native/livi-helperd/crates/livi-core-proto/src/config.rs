@@ -28,6 +28,8 @@ pub struct Config {
     pub car_play_mfi_i2c_bus: u32,
     /// -1 when the coprocessor has no power pin.
     pub car_play_mfi_power_gpio: i32,
+    pub car_play_mfi_certificate_path: String,
+    pub car_play_mfi_private_key_path: String,
 
     pub gps_enabled: bool,
     pub gps_device: String,
@@ -344,6 +346,8 @@ pub fn defaults() -> Config {
         car_play_source_version: "950.7.1".into(),
         car_play_mfi_i2c_bus: 2,
         car_play_mfi_power_gpio: -1,
+        car_play_mfi_certificate_path: String::new(),
+        car_play_mfi_private_key_path: String::new(),
         gps_enabled: false,
         gps_device: "/dev/ttyAMA0".into(),
         gps_baud_rate: 38400,

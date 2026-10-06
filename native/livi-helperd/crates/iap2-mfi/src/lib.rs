@@ -2,8 +2,16 @@
 
 use std::time::Duration;
 
+use openssl::bn::BigNumRef;
+use openssl::ecdsa::EcdsaSig;
+use openssl::pkcs7::Pkcs7;
+use openssl::pkey::{Id, PKey, Private};
+use openssl::rsa::Padding;
+
 pub const CHALLENGE_MIN: usize = 1;
 pub const CHALLENGE_MAX: usize = 128;
+const AUTH_V3_CHALLENGE_SIZE: usize = 32;
+const AUTH_V3_SIGNATURE_SIZE: usize = 64;
 
 pub const REG_DEVICE_VERSION: u8 = 0x00;
 pub const REG_PROTOCOL_MAJOR: u8 = 0x02;
@@ -28,6 +36,7 @@ pub enum MfiError {
     AuthFailed { error_code: Option<u8> },
     NoChip { probed: Vec<u16> },
     Io(String),
+    KeyMaterial(String),
 }
 
 impl core::fmt::Display for MfiError {
@@ -46,11 +55,124 @@ impl core::fmt::Display for MfiError {
                 write!(f, "no coprocessor answered at {}", addrs.join("/"))
             }
             MfiError::Io(e) => write!(f, "i2c io: {e}"),
+            MfiError::KeyMaterial(e) => write!(f, "file MFi credentials: {e}"),
         }
     }
 }
 
 impl std::error::Error for MfiError {}
+
+/// File-backed MFi authentication using a PKCS#7 certificate bundle and a
+/// PKCS#8 private key.
+pub struct FileCoprocessor {
+    // The MFi protocol expects the original PKCS#7 document, not a DER leaf certificate.
+    certificate: Vec<u8>,
+    key: PKey<Private>,
+    key_kind: FileKeyKind,
+}
+
+#[derive(Clone, Copy)]
+enum FileKeyKind {
+    Rsa,
+    Ec,
+}
+
+impl FileCoprocessor {
+    pub fn from_files(
+        certificate_path: impl AsRef<std::path::Path>,
+        key_path: impl AsRef<std::path::Path>,
+    ) -> Result<Self, MfiError> {
+        let certificate_path = certificate_path.as_ref();
+        let key_path = key_path.as_ref();
+        let bundle = std::fs::read(certificate_path).map_err(|e| {
+            MfiError::KeyMaterial(format!("read {}: {e}", certificate_path.display()))
+        })?;
+        let pkcs7 =
+            Pkcs7::from_der(&bundle).or_else(|_| Pkcs7::from_pem(&bundle)).map_err(|e| {
+                MfiError::KeyMaterial(format!("parse {}: {e}", certificate_path.display()))
+            })?;
+        let key_data = std::fs::read(key_path)
+            .map_err(|e| MfiError::KeyMaterial(format!("read {}: {e}", key_path.display())))?;
+        let key = PKey::private_key_from_der(&key_data)
+            .or_else(|_| PKey::private_key_from_pem(&key_data))
+            .map_err(|e| MfiError::KeyMaterial(format!("parse {}: {e}", key_path.display())))?;
+        let key_kind = match key.id() {
+            Id::RSA => FileKeyKind::Rsa,
+            Id::EC => FileKeyKind::Ec,
+            id => {
+                return Err(MfiError::KeyMaterial(format!("unsupported private key type {id:?}")));
+            }
+        };
+        let _matching_certificate = pkcs7
+            .signed()
+            .and_then(|signed| signed.certificates())
+            .and_then(|certificates| {
+                certificates.iter().find(|certificate| {
+                    certificate.public_key().is_ok_and(|public| key.public_eq(&public))
+                })
+            })
+            .ok_or_else(|| {
+                MfiError::KeyMaterial(
+                    "certificate bundle has no certificate matching the private key".into(),
+                )
+            })?;
+
+        Ok(Self { certificate: bundle, key, key_kind })
+    }
+}
+
+impl AuthCoprocessor for FileCoprocessor {
+    fn protocol_major(&mut self) -> Result<u8, MfiError> {
+        Ok(match self.key_kind {
+            FileKeyKind::Rsa => 2,
+            FileKeyKind::Ec => 3,
+        })
+    }
+
+    fn read_certificate(&mut self) -> Result<Vec<u8>, MfiError> {
+        Ok(self.certificate.clone())
+    }
+
+    fn generate_challenge_response(&mut self, challenge: &[u8]) -> Result<Vec<u8>, MfiError> {
+        match self.key_kind {
+            FileKeyKind::Rsa => {
+                if !(CHALLENGE_MIN..=CHALLENGE_MAX).contains(&challenge.len()) {
+                    return Err(MfiError::ChallengeSize(challenge.len()));
+                }
+                let rsa = self.key.rsa().map_err(|e| MfiError::KeyMaterial(e.to_string()))?;
+                let mut signature = vec![0; rsa.size() as usize];
+                let size = rsa
+                    .private_encrypt(challenge, &mut signature, Padding::NONE)
+                    .map_err(|e| MfiError::KeyMaterial(format!("sign challenge: {e}")))?;
+                signature.truncate(size);
+                Ok(signature)
+            }
+            FileKeyKind::Ec => {
+                if challenge.len() != AUTH_V3_CHALLENGE_SIZE {
+                    return Err(MfiError::ChallengeSize(challenge.len()));
+                }
+                let ec = self.key.ec_key().map_err(|e| MfiError::KeyMaterial(e.to_string()))?;
+                let signature = EcdsaSig::sign(challenge, &ec)
+                    .map_err(|e| MfiError::KeyMaterial(format!("sign challenge: {e}")))?;
+                let mut raw = vec![0; AUTH_V3_SIGNATURE_SIZE];
+                write_fixed_integer(signature.r(), &mut raw[..32])?;
+                write_fixed_integer(signature.s(), &mut raw[32..])?;
+                Ok(raw)
+            }
+        }
+    }
+}
+
+fn write_fixed_integer(value: &BigNumRef, output: &mut [u8]) -> Result<(), MfiError> {
+    let encoded = value
+        .to_vec_padded(output.len() as i32)
+        .map_err(|e| MfiError::KeyMaterial(format!("encode ECDSA signature: {e}")))?;
+    if encoded.len() != output.len() {
+        return Err(MfiError::KeyMaterial("ECDSA signature integer is out of range".into()));
+    }
+    output.copy_from_slice(&encoded);
+    Ok(())
+}
 
 /// The MFi coprocessor, on a local i2c bus or behind the STM bridge.
 pub trait AuthCoprocessor {

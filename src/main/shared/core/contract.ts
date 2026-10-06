@@ -16,7 +16,7 @@ export type Config = { debugLogging: boolean, wirelessAaEnabled: boolean, wirele
 /**
  * -1 when the coprocessor has no power pin.
  */
-carPlayMfiPowerGpio: number, gpsEnabled: boolean, gpsDevice: string, gpsBaudRate: number, 
+carPlayMfiPowerGpio: number, carPlayMfiCertificatePath: string, carPlayMfiPrivateKeyPath: string, gpsEnabled: boolean, gpsDevice: string, gpsBaudRate: number, 
 /**
  * From the last GPS fix, applied at startup.
  */

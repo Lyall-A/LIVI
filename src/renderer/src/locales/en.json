@@ -33,6 +33,8 @@
     "mfi": "MFi",
     "i2cBus": "I2C Bus",
     "mfiPowerGpio": "Power Pin",
+    "mfiCertificatePath": "Certificate File",
+    "mfiPrivateKeyPath": "Private Key File",
     "gps": "GPS",
     "autoSwitchOnReverse": "Automatic on reverse gear",
     "telemetry": "Telemetry",

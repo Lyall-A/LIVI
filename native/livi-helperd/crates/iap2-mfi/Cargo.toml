@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 livi-net = { path = "../livi-net" }
+openssl = "0.10"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc.workspace = true
